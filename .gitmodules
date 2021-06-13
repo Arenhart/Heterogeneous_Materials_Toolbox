@@ -1,0 +1,3 @@
+[submodule "src\\Tools"]
+	path = src\\Tools
+	url = https://github.com/Arenhart/Tools.git
