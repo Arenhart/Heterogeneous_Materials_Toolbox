@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 import scipy as sc
-import skimage as sk
+from skimage import segmentation, measure, morphology, filters, transform
 import stl
 from numba import njit, prange
 
@@ -22,7 +22,7 @@ from src.Tools.jit_transport_solver import calculate_transport
 from src.Tools.jit_minkowsky import get_minkowsky_functionals, get_minkowsky_functionals_parallel, minkowsky_names
 
 PI = np.pi
-SRC_FOLDER = os.path.abspath(__file__)
+SRC_FOLDER = os.path.dirname(os.path.realpath(__file__))
 MC_TEMPLATES_FILE = "marching cubes templates.dat"
 
 ################
@@ -33,7 +33,7 @@ def face_orientation(v0, v1, v2):
     '''
     Return outward perpendicular vector distance of face along the z axis
     '''
-    v0 = np.array(v0)
+    v0 = np.array(v0),
     v1 = np.array(v1)
     v2 = np.array(v2)
     vector = np.cross(v1 - v0, v2 - v0)
@@ -82,11 +82,11 @@ def mc_templates_generator(override = False):
             if index >= e:
                 index -= e
                 array[summation_to_coordinate[e]] = 1
-        verts, faces = sk.measure.marching_cubes_lewiner(array)[0:2]
+        verts, faces = measure.marching_cubes_lewiner(array)[0:2]
         templates_triangles[i][0] = verts
         templates_triangles[i][1] = faces
 
-    with open(MC_TEMPLATES_FILE, mode = 'w') as file:
+    with open(os.path.join(SRC_FOLDER, MC_TEMPLATES_FILE), mode = 'w') as file:
         for i in range(256):
             verts, faces = templates_triangles[i]
             file.write(f'{i};')
@@ -109,7 +109,7 @@ def create_mc_template_list(spacing = (1, 1, 1)):
     volumes = {}
     triangles = {}
     vertices_on_top = set((16, 32, 64, 128))
-    with open(MC_TEMPLATES_FILE, mode = 'r') as file:
+    with open(os.path.join(SRC_FOLDER, MC_TEMPLATES_FILE), mode = 'r') as file:
         for line in file:
             index, verts, faces = line.split(';')
             index = int(index)
@@ -286,7 +286,7 @@ def wrap_sample(img, label = -1):
         sys.stdout.flush()
         outside[i, :, :] = (
                 np.int8(1)
-                - sk.morphology.convex_hull_image(img[i, :, :])
+                - morphology.convex_hull_image(img[i, :, :])
                 )
     print()
     return img - outside
@@ -298,7 +298,7 @@ def wrap_sample(img, label = -1):
 
 def otsu_threshold(img):
 
-    val = sk.filters.threshold_otsu(img)
+    val = filters.threshold_otsu(img)
     return (img >= val).astype('int8')
 
 
@@ -425,7 +425,7 @@ def watershed(img, compactness, two_d = False):
     m = distance_map.max()
     dist_img = ((-distance_map.astype('int16') + m) ** 2).astype('uint16')
     markers = markers.astype('int32')
-    out = sk.segmentation.watershed(
+    out = segmentation.watershed(
             dist_img,
             markers = markers,
             mask = img,
@@ -491,7 +491,7 @@ def segregator(img, relative_threshold, two_d = False):
         sl = distance_map[objects[i]]
         mask = label_map[objects[i]] == (i + 1)
         sl *= (((sl <= thresholds[i]) * (mask)) != 1)
-        sphere = sk.morphology.ball(thresholds[i] / 2)
+        sphere = morphology.ball(thresholds[i] / 2)
         sl += sc.ndimage.morphology.binary_dilation(
                 sl,
                 structure=sphere,
@@ -572,8 +572,8 @@ def shape_factor(img, factors):
         if min(valid.shape) <= 2:
             continue
         vol = valid.sum()
-        verts, faces = sk.measure.marching_cubes_lewiner(valid)[0:2]
-        sur = sk.measure.mesh_surface_area(verts, faces)
+        verts, faces = measure.marching_cubes_lewiner(valid)[0:2]
+        sur = measure.mesh_surface_area(verts, faces)
         eq_diam = ((6/PI) * vol) ** (0.333)
         label_eval = ''
 
@@ -669,7 +669,7 @@ def skeletonizer(img):
     if np.max(img) > 1:
         img = otsu_threshold(img)
 
-    return sk.morphology.skeletonize_3d(img)
+    return morphology.skeletonize_3d(img)
 
 
 def SB_pore_scale_permeability(img):
@@ -690,7 +690,7 @@ def export_stl(img, stl_path, step_size = 8):
         img = otsu_threshold(img)
 
     print('binary img')
-    vertices, faces, _, _ =  sk.measure.marching_cubes_lewiner(
+    vertices, faces, _, _ =  measure.marching_cubes_lewiner(
             img,
             step_size = step_size
             )
@@ -716,7 +716,7 @@ def rescale(img, factor = 0.5):
     if img.max() <= 1:
         img *= 255
 
-    return sk.transform.rescale(
+    return transform.rescale(
             img,
             factor,
             multichannel = False,

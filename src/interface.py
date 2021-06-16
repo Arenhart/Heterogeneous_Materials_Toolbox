@@ -15,24 +15,24 @@ import tkinter.messagebox as messagebox
 from PIL import Image, ImageTk
 
 import src.io as io
-import src.operations as op
+import src.operations as operations
 
 SRC_FOLDER = os.path.dirname(os.path.realpath(__file__))
 OPERATIONS = {
-        'OTSU': (op.otsu_threshold, True),
-        'WATE': (op.watershed, True),
-        'AOSE': (op.segregator, True),
-        'SHAP': (op.shape_factor, False),
-        'AAPS': (op.AA_pore_scale_permeability, False),
-        'SKEL': (op.skeletonizer, True),
-        'SBPS': (op.SB_pore_scale_permeability, False),
-        'LABL': (op.labeling, False),
-        'ESTL': (op.export_stl, False),
-        'RESC': (op.rescale, False),
-        'MCAV': (op.marching_cubes_area_and_volume, False),
-        'FFSO': (op.formation_factor_solver, False),
-        'BKDI': (op.breakthrough_diameter, False),
-        'FMCH': (op.breakthrough_diameter, False)
+        'OTSU': (operations.otsu_threshold, True),
+        'WATE': (operations.watershed, True),
+        'AOSE': (operations.segregator, True),
+        'SHAP': (operations.shape_factor, False),
+        'AAPS': (operations.AA_pore_scale_permeability, False),
+        'SKEL': (operations.skeletonizer, True),
+        'SBPS': (operations.SB_pore_scale_permeability, False),
+        'LABL': (operations.labeling, False),
+        'ESTL': (operations.export_stl, False),
+        'RESC': (operations.rescale, False),
+        'MCAV': (operations.marching_cubes_area_and_volume, False),
+        'FFSO': (operations.formation_factor_solver, False),
+        'BKDI': (operations.breakthrough_diameter, False),
+        'FMCH': (operations.breakthrough_diameter, False)
         }
 
 class Interface():
@@ -41,7 +41,7 @@ class Interface():
 
         self.root = tk.Tk()
         self.root.title('Heterogeneous Materials Analyzer')
-        self.operations = {}
+        self.operations_dictionary = {}
         self.strings = {}
         self.load_config()
         self.lang_file = 'hma_' + self.config['language'] + '.lng'
@@ -54,17 +54,17 @@ class Interface():
                 self.strings[key] = value
 
         for name, properties in OPERATIONS.items():
-            self.operations[self.get_string(name)] = {
-                    'function': properties[0],
-                    'preview': properties[1],
-                    'suffix': "_" +  name}
+            self.operations_dictionary[self.get_string(name)] = {
+                'function': properties[0],
+                'preview': properties[1],
+                'suffix': "_" +  name}
 
         self.selected_operation = tk.StringVar(self.root)
         self.selected_operation.set(self.get_string('SELECT_OPERATION'))
         self.selected_operation.trace(
                          'w', lambda w, x, y: self.update_op_description())
         self.operations_menu = tk.OptionMenu(self.root,
-                           self.selected_operation, *tuple(self.operations.keys()))
+                           self.selected_operation, *tuple(self.operations_dictionary.keys()))
         self.operations_menu.config(width=50)
         self.operations_menu.pack(side = tk.TOP)
 
@@ -108,7 +108,7 @@ class Interface():
     def update_op_description(self):
 
         operation = self.selected_operation.get()
-        suffix = self.operations[operation]['suffix']
+        suffix = self.operations_dictionary[operation]['suffix']
         description_string = self.get_string('DESCRIPTION' + suffix)
         self.op_description.config(text = description_string)
         self.btn_select_main.config(state = tk.ACTIVE)
@@ -142,7 +142,7 @@ class Interface():
         self.btn_preview_preview = tk.Button(self.frm_preview_buttons,
                                  text = self.get_string('BTN_PREVIEW_PREVIEW'),
                                  command = self.preview_preview)
-        if not self.operations[self.selected_operation.get()]['preview']:
+        if not self.operations_dictionary[self.selected_operation.get()]['preview']:
             self.btn_preview_preview.config(state = tk.DISABLED)
         self.btn_preview_preview.pack(side = tk.LEFT, padx = 10)
         self.btn_preview_run = tk.Button(self.frm_preview_buttons,
@@ -168,19 +168,19 @@ class Interface():
     def preview_preview(self):
 
         op = self.selected_operation.get()
-        op_suffix = self.operations[op]['suffix']
+        op_suffix = self.operations_dictionary[op]['suffix']
         if op_suffix == '_OTSU':
-            pre_im = op.otsu_threshold(self.preview_vol[:,:,0])
+            pre_im = operations.otsu_threshold(self.preview_vol[:,:,0])
         elif op_suffix == '_WATE':
             compactness = float(self.dct_parameters['compactness'].get())
-            pre_im = op.watershed(self.preview_vol, compactness, two_d = True)
+            pre_im = operations.watershed(self.preview_vol, compactness, two_d = True)
             pre_im = pre_im[:,:,1]
         elif op_suffix == '_AOSE':
             threshold = float(self.dct_parameters['threshold'].get())
-            pre_im = op.segregator(self.preview_vol, threshold, two_d = True)
+            pre_im = operations.segregator(self.preview_vol, threshold, two_d = True)
             pre_im = pre_im[:,:,1]
         elif op_suffix == '_SKEL':
-            pre_im = op.skeletonizer(self.preview_vol).sum(axis = 2)
+            pre_im = operations.skeletonizer(self.preview_vol).sum(axis = 2)
 
         self.preview_img = np.array(Image.fromarray(pre_im).resize((300,300)))
         self.preview_img = (self.preview_img/np.max(self.preview_img))*254
@@ -194,11 +194,11 @@ class Interface():
     def preview_run(self):
 
         op = self.selected_operation.get()
-        op_suffix = self.operations[op]['suffix']
+        op_suffix = self.operations_dictionary[op]['suffix']
         self.dct_parameters
 
         if op_suffix == '_OTSU':
-            out_img = op.otsu_threshold(self.img)
+            out_img = operations.otsu_threshold(self.img)
             io.save_raw(self.img_path[:-4]+op_suffix+'.raw',
                      out_img,
                      self.img_config,
@@ -210,7 +210,7 @@ class Interface():
             except ValueError:
                 messagebox.showinfo('Error', 'Entry is not a float')
                 return
-            out_img = op.watershed(self.img, compactness)
+            out_img = operations.watershed(self.img, compactness)
             io.save_raw(self.img_path[:-4]+op_suffix+'.raw',
                          out_img,
                          self.img_config,
@@ -221,7 +221,7 @@ class Interface():
             except ValueError:
                 messagebox.showinfo('Error', 'Entry is not a float')
                 return
-            out_img = op.segregator(self.img, threshold)
+            out_img = operations.segregator(self.img, threshold)
             io.save_raw(self.img_path[:-4]+op_suffix+'.raw',
                          out_img,
                          self.img_config,
@@ -232,27 +232,27 @@ class Interface():
                       'equivalent diameter', 'irregularity'):
                 if self.dct_parameters[i].get() == 1:
                     factors.append(i)
-            header, lines = op.shape_factor(self.img, factors)
+            header, lines = operations.shape_factor(self.img, factors)
             with open(self.img_path[:-4]+op_suffix+'.txt', mode = 'w') as file:
                 file.write(header+'\n')
                 file.write(lines)
 
         elif op_suffix == '_SKEL':
-            out_img = op.skeletonizer(self.img)
+            out_img = operations.skeletonizer(self.img)
             io.save_raw(self.img_path[:-4]+op_suffix+'.raw',
                          out_img,
                          self.img_config,
                          self.config_order)
 
         elif op_suffix == '_LABL':
-            out_img = op.labeling(self.img)
+            out_img = operations.labeling(self.img)
             io.save_raw(self.img_path[:-4]+op_suffix+'.raw',
                          out_img,
                          self.img_config,
                          self.config_order)
 
         elif op_suffix == '_AAPP':
-            permeability = op.AA_pore_scale_permeability(self.img)
+            permeability = operations.AA_pore_scale_permeability(self.img)
             messagebox.showinfo('Permeability result',
                                 f'Calculated permeability is {permeability.solution}')
 
@@ -264,7 +264,7 @@ class Interface():
                 messagebox.showinfo('Error', 'Entry is not a integer')
                 return
 
-            op.export_stl(self.img, save_path, step_size)
+            operations.export_stl(self.img, save_path, step_size)
 
         elif op_suffix == '_RESC':
 
@@ -274,7 +274,7 @@ class Interface():
                 messagebox.showinfo('Error', 'Entry is not a float')
                 return
 
-            out_img = op.rescale(self.img, factor)
+            out_img = operations.rescale(self.img, factor)
             io.save_raw(self.img_path[:-4]+op_suffix+'.raw',
                          out_img,
                          self.img_config,
@@ -282,7 +282,7 @@ class Interface():
 
         elif op_suffix == '_MCAV':
             start = time.perf_counter()
-            areas, volumes = op.marching_cubes_area_and_volume(self.img)
+            areas, volumes = operations.marching_cubes_area_and_volume(self.img)
             with open(self.img_path[:-4]+op_suffix+'.txt', mode = 'w') as file:
                 file.write('Index\tArea\tVolume\n')
                 for i in range(1,len(areas)):
@@ -292,14 +292,14 @@ class Interface():
         elif op_suffix == '_BKDI':
             start = time.perf_counter()
             step = float(self.dct_parameters['step'].get())
-            diameter = op.breakthrough_diameter(self.img, step)
+            diameter = operations.breakthrough_diameter(self.img, step)
             with open(self.img_path[:-4]+op_suffix+'.txt', mode = 'w') as file:
                 file.write(f'{self.img_path} - Breakthrough diameter = {diameter}')
             print(time.perf_counter() - start)
 
         elif op_suffix == '_FMCH':
             start = time.perf_counter()
-            characterizations = op.full_morphology_characterization(self.img)
+            characterizations = operations.full_morphology_characterization(self.img)
             with open(self.img_path[:-4]+op_suffix+'.txt', mode = 'w') as file:
                 for key, values in characterizations.items():
                     file.write(f'{key},{str(values)[1:-1]}\n')
@@ -332,7 +332,7 @@ class Interface():
     def create_parameters_frame(self, frame, dict_parameters):
 
         op = self.selected_operation.get()
-        op_suffix = self.operations[op]['suffix']
+        op_suffix = self.operations_dictionary[op]['suffix']
         if op_suffix == '_OTSU':
             pass
 
