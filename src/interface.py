@@ -215,6 +215,7 @@ class Interface():
                          out_img,
                          self.img_config,
                          self.config_order)
+            
         elif op_suffix == '_AOSE':
             try:
                 threshold = float(self.dct_parameters['threshold'].get())
@@ -226,6 +227,7 @@ class Interface():
                          out_img,
                          self.img_config,
                          self.config_order)
+            
         elif op_suffix == '_SHAP':
             factors = []
             for i in ('volume', 'surface', 'hidraulic radius',
