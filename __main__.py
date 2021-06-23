@@ -20,7 +20,6 @@ def start_interface():
     interface.start()
     
 def bmp2raw():
-    interface = importlib.import_module('src.interface')
     files = args.Options
     img, config, config_order = io.load_bmp_files(files)
     out_path = ''

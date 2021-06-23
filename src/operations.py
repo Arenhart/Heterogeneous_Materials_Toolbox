@@ -429,7 +429,7 @@ def watershed(img, compactness, two_d = False):
             dist_img,
             markers = markers,
             mask = img,
-            compactness = 1.0
+            compactness = compactness
             )
     print ('Finished watershed', time.process_time() - tempo)
     return out.astype('uint32')
